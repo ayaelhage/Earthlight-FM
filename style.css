@@ -1,0 +1,17 @@
+:root {
+  --ultramarine: #290087;
+  --honeydew: #F6FFE9;
+  --vanilla: #F2E0A4;
+  --periwinkle: #CAC5E5;
+  --amethyst: #A230A4;
+}
+
+body {
+  margin: 0;
+  background: var(--ultramarine);
+}
+
+#dots {
+  width: 100%;
+  display: block;
+}
