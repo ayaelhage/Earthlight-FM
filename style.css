@@ -674,3 +674,59 @@ button:focus-visible {
         padding-right: 20px;
     }
 }
+
+/* ----- world map ----- */
+.map-label {
+  justify-content: space-between;
+}
+
+.map-world-key {
+  padding: 2px 14px;
+  font-size: 1rem;
+}
+
+#map-screen svg {
+  width: 100%;
+  height: 100%;
+}
+
+#map-screen path {
+  fill: #2a1d5c;
+  stroke: var(--night);
+  stroke-width: 0.5;
+  transition: fill 0.2s;
+}
+
+#map-screen .continent {
+  cursor: pointer;
+  outline: none;
+}
+
+/* hover / keyboard focus: soft yellow */
+#map-screen .continent:hover path,
+#map-screen .continent:focus-visible path {
+  fill: #b9a874;
+}
+
+/* selected: full yellow with a glow */
+#map-screen .continent.is-selected path {
+  fill: var(--vanilla);
+}
+
+#map-screen .continent.is-selected {
+  filter: drop-shadow(0 0 6px rgba(242, 224, 164, 0.8));
+}
+
+#map-screen .land-other {
+  fill: #1a1238;
+}
+
+/* World selected: every continent lights up */
+#map-screen.world-selected .continent path,
+#map-screen.world-selected .land-other {
+  fill: var(--vanilla);
+}
+
+#map-screen.world-selected .continent {
+  filter: drop-shadow(0 0 6px rgba(242, 224, 164, 0.8));
+}

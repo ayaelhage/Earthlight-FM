@@ -52,6 +52,7 @@ img.onload = () => {
         ctx.arc(x + step / 2, y + step / 2, size * 2.2, 0, Math.PI * 2);
         ctx.fill();
 
+
         // the dot itself
         ctx.globalAlpha = alpha;
         ctx.beginPath();
@@ -62,11 +63,12 @@ img.onload = () => {
   }
 
   // 6. Runs ONCE, after all the dots are drawn
+  nasaPixels = pixels;
+  imgW = img.width;
+  imgH = img.height;
   log("NASA SVS 5276 · night lights loaded");
   log(`image ${img.width} x ${img.height} px`);
-  regionBox = { x: 0, y: 0, w: img.width, h: img.height, imgWidth: img.width };
-  strips = analyzeRegion(pixels, img.width, regionBox);
-  log(`analyzed ${STRIPS} strips · ready`);
+  selectRegion("world");
 };
 
 img.onerror = () => console.log("Image NOT found. Check the name and folder!");
@@ -280,3 +282,144 @@ muteBtn.addEventListener("click", () => {
   muteBtn.setAttribute("aria-pressed", Tone.Destination.mute);
   log(Tone.Destination.mute ? "muted" : "sound on");
 });
+
+// ===== REGIONS (latitude / longitude boxes) =====
+let nasaPixels = null;
+let imgW = 0;
+let imgH = 0;
+
+const REGIONS = {
+  "world":         { name: "the whole world", west: -180, east: 180, north: 90, south: -90 },
+  "north-america": { name: "North America",   west: -170, east: -50, north: 84, south: 7 },
+  "south-america": { name: "South America",   west: -92,  east: -32, north: 13, south: -56 },
+  "europe":        { name: "Europe",          west: -25,  east: 45,  north: 72, south: 34 },
+  "africa":        { name: "Africa",          west: -20,  east: 55,  north: 38, south: -36 },
+  "asia":          { name: "Asia",            west: 45,   east: 180, north: 78, south: -11 },
+  "oceania":       { name: "Oceania",         west: 110,  east: 180, north: 0,  south: -48 }
+};
+
+// turns a latitude/longitude box into a pixel rectangle on NASA's flat map
+function regionToBox(r) {
+  const mapH = imgW / 2;              // a flat world map is twice as wide as it is tall
+  const top = (imgH - mapH) / 2;      // empty band above and below the map
+  const x1 = ((r.west + 180) / 360) * imgW;
+  const x2 = ((r.east + 180) / 360) * imgW;
+  const y1 = Math.max(0, top + ((90 - r.north) / 180) * mapH);
+  const y2 = Math.min(imgH, top + ((90 - r.south) / 180) * mapH);
+  return {
+    x: Math.round(x1),
+    y: Math.round(y1),
+    w: Math.round(x2 - x1),
+    h: Math.round(y2 - y1),
+    imgWidth: imgW
+  };
+}
+
+function selectRegion(key) {
+  if (!nasaPixels) {
+    log("NASA image still loading...");
+    return;
+  }
+  const r = REGIONS[key];
+  currentRegion = r.name;
+  regionBox = regionToBox(r);
+  strips = analyzeRegion(nasaPixels, imgW, regionBox);
+  playStep = 0;
+
+  // light up the chosen continent (and the World key)
+  document.querySelectorAll(".continent").forEach(g => {
+    const on = g.id === key;
+    g.classList.toggle("is-selected", on);
+    g.setAttribute("aria-pressed", on);
+  });
+  document.getElementById("world-btn").setAttribute("aria-pressed", key === "world");
+  document.getElementById("map-screen").classList.toggle("world-selected", key === "world");
+
+  nowPlaying.textContent = `${r.name} selected. Press play to listen.`;
+  log(`region: ${r.name} · ${STRIPS} strips ready`);
+}
+
+document.getElementById("world-btn").addEventListener("click", () => selectRegion("world"));
+
+
+// ===== WORLD MAP (simplemaps SVG grouped into continents) =====
+
+// countries in ONE piece use their id (ISO code)
+const CODES = {
+  "north-america": "AI AW BB BZ BM VG CR CU CW DM DO SV GL GD GT HT HN JM MQ MX MS NI PA LC VC BL MF SX BQSA BQSE BQBO",
+  "south-america": "BO BR CO EC GF GY PY PE SR UY VE",
+  "europe":        "AL AT BY BE BA BG HR CZ EE FI DE HU IS IE XK LV LT LU MK MD ME NL PL PT RO RS SK SI ES SE CH UA",
+  "africa":        "DZ BJ BW BF BI CM CF TD CI CD DJ EG GQ ER ET GA GH GN GW KE LS LR LY MG MW ML MR YT MA MZ NA NE NG CG RE RW SN SL SO ZA SS SD SZ TZ GM TG TN UG EH ZM ZW",
+  "asia":          "AF AM BH BD BT BN KH KP GE IN IR IQ IL JO KZ KW KG LA LB MV MN MM NP PK PS QA KR SA LK SY TW TJ TH TL TM AE UZ VN YE",
+  "oceania":       "GU MH NR PW TV"
+};
+
+// countries in SEVERAL pieces use their name (class)
+const NAMES = {
+  "north-america": ["Canada", "United States", "Bahamas", "Antigua and Barbuda", "Cayman Islands", "Puerto Rico", "Saint Kitts and Nevis", "Trinidad and Tobago", "Turks and Caicos Islands", "United States Virgin Islands"],
+  "south-america": ["Argentina", "Chile", "Falkland Islands"],
+  "europe":        ["Russian Federation", "United Kingdom", "France", "Italy", "Greece", "Norway", "Denmark", "Cyprus", "Malta", "Faeroe Islands"],
+  "africa":        ["Angola", "Cape Verde", "Comoros", "Mauritius", "Sao Tome and Principe", "Seychelles", "Canary Islands (Spain)"],
+  "asia":          ["China", "Japan", "Indonesia", "Malaysia", "Philippines", "Oman", "Azerbaijan", "Turkey"],
+  "oceania":       ["Australia", "New Zealand", "Papua New Guinea", "Fiji", "Solomon Islands", "Vanuatu", "New Caledonia", "French Polynesia", "Samoa", "American Samoa", "Kiribati", "Federated States of Micronesia", "Northern Mariana Islands", "Tonga"]
+};
+
+// build one lookup table: country → continent
+const CONTINENT_OF = {};
+for (const continent in CODES) {
+  CODES[continent].split(" ").forEach(code => CONTINENT_OF[code] = continent);
+  NAMES[continent].forEach(name => CONTINENT_OF[name] = continent);
+}
+
+fetch("assets/icons/world.svg")
+  .then(res => {
+    if (!res.ok) throw new Error("not found");
+    return res.text();
+  })
+  .then(svgText => {
+    const mapScreen = document.getElementById("map-screen");
+    mapScreen.innerHTML = svgText;
+
+    const svg = mapScreen.querySelector("svg");
+    svg.removeAttribute("width");
+    svg.removeAttribute("height");
+    svg.setAttribute("aria-label", "World map. Choose a region to listen to.");
+
+    // one clickable group per continent
+    const groups = {};
+    for (const key in CODES) {
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.id = key;
+      g.classList.add("continent");
+      g.setAttribute("tabindex", "0");
+      g.setAttribute("role", "button");
+      g.setAttribute("aria-label", REGIONS[key].name);
+      g.setAttribute("aria-pressed", "false");
+      g.addEventListener("click", () => selectRegion(key));
+      g.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          selectRegion(key);
+        }
+      });
+      svg.appendChild(g);
+      groups[key] = g;
+    }
+
+    // move every country into its continent
+    const unknown = new Set();
+    svg.querySelectorAll("path").forEach(path => {
+      const key = path.id || path.getAttribute("class");
+      const continent = CONTINENT_OF[key];
+      if (continent) {
+        groups[continent].appendChild(path);
+      } else {
+        unknown.add(key);
+        path.classList.add("land-other");
+      }
+    });
+
+    if (unknown.size) console.warn("Countries without a continent:", [...unknown]);
+    log("world map loaded · 6 regions");
+  })
+  .catch(() => log("could not load world.svg"));
