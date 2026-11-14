@@ -167,7 +167,6 @@ function analyzeRegion(pixels, imgWidth, box) {
   return result.map(s => ({ gained: s.gained / max, lost: s.lost / max }));
 }
 
-
 // ===== INSTRUMENTS =====
 const reverb = new Tone.Reverb({ decay: 3, wet: 0.3 }).toDestination();
 
@@ -180,7 +179,7 @@ const kalimba = new Tone.PolySynth(Tone.FMSynth, {
   modulation: { type: "square" },
   modulationEnvelope: { attack: 0.002, decay: 0.2, sustain: 0, release: 0.2 }
 }).connect(reverb);
-kalimba.volume.value = -6;
+kalimba.volume.value = 0;        // was -6
 
 // stylophone: buzzy square wave, softened by a filter
 const styloFilter = new Tone.Filter(1200, "lowpass").connect(reverb);
@@ -188,13 +187,19 @@ const stylophone = new Tone.Synth({
   oscillator: { type: "square" },
   envelope: { attack: 0.005, decay: 0.2, sustain: 0.3, release: 0.2 }
 }).connect(styloFilter);
-stylophone.volume.value = -18;
+stylophone.volume.value = -10;   // was -18
+
+// master: evens out loud/quiet notes, then boosts safely
+Tone.Destination.chain(
+  new Tone.Compressor(-24, 4),
+  new Tone.Limiter(-1)
+);
+Tone.Destination.volume.value = 4;
 
 function pickNote(notes, value) {
   const index = Math.min(notes.length - 1, Math.floor(value * notes.length));
   return notes[index];
 }
-
 
 // ===== PLAYBACK =====
 Tone.Transport.bpm.value = 100;
@@ -221,14 +226,14 @@ Tone.Transport.scheduleRepeat((time) => {
 
   if (s.gained > 0.05) {
     const note = pickNote(KALIMBA_NOTES, s.gained);
-    kalimba.triggerAttackRelease(note, "8n", time, 0.3 + s.gained * 0.7);
+    kalimba.triggerAttackRelease(note, "8n", time, 0.5 + s.gained * 0.5);
     played.push(`+light ${note}`);
     events.push({ note, kind: "gain", strength: s.gained });
   }
 
   if (s.lost > 0.05) {
     const note = pickNote(STYLO_NOTES, s.lost);
-    stylophone.triggerAttackRelease(note, "16n", time, 0.3 + s.lost * 0.7);
+    stylophone.triggerAttackRelease(note, "16n", time, 0.5 + s.lost * 0.5);
     played.push(`-light ${note}`);
     events.push({ note, kind: "loss", strength: s.lost });
   }
@@ -260,8 +265,6 @@ function stopPlayback() {
   if (currentKey === "world") setGlobeTracking(false);
   drawGraph(-1);
 }
-
-
 
 // ===== BUTTONS =====
 const playBtn = document.getElementById("play-btn");
@@ -664,3 +667,122 @@ function animateScreens(now) {
 }
 
 requestAnimationFrame(animateScreens);
+
+// ===== FIELD REPORT PRINTER =====
+const printBtn = document.getElementById("print-btn");
+const paper = document.getElementById("paper");
+let printing = false;
+
+// recorded printer sound (Freesound, CC0)
+const printerSound = new Tone.Player({
+  url: "assets/sounds/printer.wav",
+  loop: true
+}).toDestination();
+printerSound.volume.value = -24;   // much quieter than the music
+
+// longitude at the center of a strip, as text
+function lonOfStrip(i) {
+  const centerX = regionBox.x + (i + 0.5) * (regionBox.w / STRIPS);
+  const lon = Math.round(-180 + (centerX / regionBox.imgWidth) * 360);
+  return lon < 0 ? `${-lon}°W` : `${lon}°E`;
+}
+
+// builds the report from the real strip data
+function buildReport() {
+  const T = 0.05; // same threshold the sound engine uses
+  const gainStrips = strips.filter(s => s.gained > T).length;
+  const lossStrips = strips.filter(s => s.lost > T).length;
+  const silent = strips.filter(s => s.gained <= T && s.lost <= T).length;
+
+  const totalGain = strips.reduce((sum, s) => sum + s.gained, 0);
+  const totalLoss = strips.reduce((sum, s) => sum + s.lost, 0);
+
+  let peakGain = 0, peakLoss = 0;
+  strips.forEach((s, i) => {
+    if (s.gained > strips[peakGain].gained) peakGain = i;
+    if (s.lost > strips[peakLoss].lost) peakLoss = i;
+  });
+
+  // overall trend
+  const ratio = totalGain / (totalGain + totalLoss || 1);
+  let trend;
+  if (totalGain + totalLoss < 0.5) trend = "Very little change was detected in this region.";
+  else if (ratio > 0.7) trend = "Mostly BRIGHTER: new light clearly outweighs lost light.";
+  else if (ratio < 0.3) trend = "Mostly DARKER: lost light outweighs new light.";
+  else trend = "MIXED: some areas brightened while others dimmed.";
+
+  const date = new Date().toLocaleString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+
+  const lines = [
+    { type: "title", text: "EARTHLIGHT FM · FIELD REPORT" },
+    { type: "meta",  text: `${date} · Period 2012 → 2023` },
+    { type: "meta",  text: `Region: ${currentRegion.toUpperCase()}` },
+    { type: "rule" },
+
+    { type: "head", text: "01 · THE LIGHTS" },
+    { type: "line", text: trend },
+    { type: "line", text: `Brighter in ${gainStrips} of ${STRIPS} slices · dimmer in ${lossStrips} · no clear change in ${silent}.` }
+  ];
+  if (strips[peakGain].gained > T) lines.push({ type: "line", text: `Strongest growth near ${lonOfStrip(peakGain)}.` });
+  if (strips[peakLoss].lost > T)   lines.push({ type: "line", text: `Strongest loss near ${lonOfStrip(peakLoss)}.` });
+
+  lines.push(
+    { type: "rule" },
+    { type: "head", text: "02 · WHY THIS MELODY?" },
+    { type: "line", text: `The region was read west → east in ${STRIPS} slices, one beat per slice.` },
+    { type: "line", text: `${gainStrips} kalimba notes = purple pixels, places that gained light. More growth plays a higher, louder note.` },
+    { type: "line", text: `${lossStrips} stylophone notes = orange pixels, places that lost light. Low and buzzy, like a fading signal.` },
+    { type: "line", text: `${silent} silences = no clear change: oceans, deserts, or places that stayed the same.` },
+    { type: "line", text: "Every note comes from a pentatonic scale, so the data stays musical." },
+
+    { type: "rule" },
+    { type: "head", text: "03 · WHAT CAN CHANGE NIGHT LIGHTS" },
+    { type: "line", text: "More light: growing cities, new roads and industry, homes getting electricity." },
+    { type: "line", text: "Less light: conflict, disasters, power cuts, or people leaving an area." },
+    { type: "line", text: "Note: switching to LED street lights can look dimmer to the satellite, even when nothing changed on the ground." },
+
+    { type: "rule" },
+    { type: "head", text: "04 · DATA" },
+    { type: "line", text: "NASA Black Marble night lights (Suomi NPP VIIRS) · NASA SVS 5313 / 5276." },
+    { type: "line", text: "Regions are approximate latitude/longitude boxes." },
+    { type: "end",  text: "✦ END OF TRANSMISSION ✦" }
+  );
+
+  return lines;
+}
+
+printBtn.addEventListener("click", async () => {
+  if (printing) return;
+  if (!strips.length) {
+    log("no data yet · select a region first");
+    return;
+  }
+  await Tone.start();
+
+  printing = true;
+  printBtn.disabled = true;
+  paper.innerHTML = "";
+  paper.setAttribute("aria-busy", "true");   // screen readers wait until it's finished
+  log(`printing report · ${currentRegion}`);
+  if (printerSound.loaded) printerSound.start();
+
+  const lines = buildReport();
+  lines.forEach((l, i) => {
+    setTimeout(() => {
+      const el = document.createElement(l.type === "rule" ? "hr" : "p");
+      el.className = `r-${l.type}`;
+      if (l.text) el.textContent = l.text;
+      paper.appendChild(el);
+
+      if (i === lines.length - 1) {
+        printerSound.stop();
+        paper.setAttribute("aria-busy", "false"); // now it's read in one go
+        printBtn.disabled = false;
+        printing = false;
+        log("report printed");
+      }
+    }, i * 140);
+  });
+});
