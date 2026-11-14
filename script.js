@@ -33,6 +33,8 @@ img.onload = () => {
             r = pixels[i]; g = pixels[i + 1]; b = pixels[i + 2];
           }
         }
+        log("NASA SVS 5276 · night lights loaded");
+        log(`image ${img.width} x ${img.height} px`);
       }
 
       if (best > threshold) {
@@ -64,4 +66,12 @@ const onAirText = document.getElementById("on-air-text");
 function setOnAir(isLive) {
   onAir.classList.toggle("is-live", isLive);
   onAirText.textContent = isLive ? "On air" : "Standby";
+}
+
+// SYSTEM LOG (code screen)
+const logEl = document.getElementById("log");
+
+function log(message) {
+  const lines = (logEl.textContent + "\n> " + message).split("\n");
+  logEl.textContent = lines.slice(-9).join("\n");
 }

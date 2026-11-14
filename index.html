@@ -61,12 +61,121 @@
             <div class="map-key">
                 <p class="map-key-title">Map key</p>
                 <ul>
-                    <li><span class="key-dot key-new" aria-hidden="true"></span> Purple: Increaed nighttime illumination (2012-2023)</li>
-                    <li><span class="key-dot key-lost" aria-hidden="true"></span> Orange: Decreased nighttime illumination (2012-2023)</li>
+                    <li><span class="key-dot key-new" aria-hidden="true"></span> Purple: Increaed nighttime illumination
+                        (2012-2023)</li>
+                    <li><span class="key-dot key-lost" aria-hidden="true"></span> Orange: Decreased nighttime
+                        illumination (2012-2023)</li>
                 </ul>
             </div>
         </section>
 
+        <!-- SCREEN WALL -->
+        <section id="screens" class="screens" aria-labelledby="screens-title">
+            <p class="eyebrow">Control room</p>
+            <h2 id="screens-title" class="section-title">Every change makes a sound.</h2>
+
+            <div class="screen-wall">
+
+                <!-- globe -->
+                <article class="monitor area-globe">
+                    <header class="monitor-label">
+                        <span class="icon icon-globe" aria-hidden="true"></span> Earth
+                    </header>
+                    <div class="monitor-screen" id="globe-screen"></div>
+                </article>
+
+                <!-- brightness graph -->
+                <article class="monitor area-graph" aria-label="Brightness graph">
+                    <div class="monitor-screen" id="graph-screen"></div>
+                </article>
+
+                <!-- continent map -->
+                <article class="monitor area-map">
+                    <header class="monitor-label">Select a region</header>
+                    <div class="monitor-screen" id="map-screen"></div>
+                </article>
+
+                <!-- control panel -->
+                <article class="monitor area-deck">
+                    <header class="monitor-label">
+                        <span class="icon icon-code" aria-hidden="true"></span> Control panel
+                    </header>
+
+                    <div class="deck">
+                        <div class="deck-years" role="group" aria-label="Choose a year">
+                            <button class="key year-key" data-year="2012" aria-pressed="false">2012</button>
+                            <button class="key year-key" data-year="2013" aria-pressed="false">2013</button>
+                            <button class="key year-key" data-year="2014" aria-pressed="false">2014</button>
+                            <button class="key year-key" data-year="2015" aria-pressed="false">2015</button>
+                            <button class="key year-key" data-year="2016" aria-pressed="false">2016</button>
+                            <button class="key year-key" data-year="2017" aria-pressed="false">2017</button>
+                            <button class="key year-key" data-year="2018" aria-pressed="false">2018</button>
+                            <button class="key year-key" data-year="2019" aria-pressed="false">2019</button>
+                            <button class="key year-key" data-year="2020" aria-pressed="false">2020</button>
+                            <button class="key year-key" data-year="2021" aria-pressed="false">2021</button>
+                            <button class="key year-key" data-year="2022" aria-pressed="false">2022</button>
+                            <button class="key year-key" data-year="2023" aria-pressed="false">2023</button>
+                            <button class="key year-key year-change" data-year="change" aria-pressed="true">
+                                What changed · 2012 → 2023
+                            </button>
+                        </div>
+
+                        <div class="deck-transport">
+                            <button class="key icon-key" id="play-btn" aria-label="Play">
+                                <span class="icon icon-play" aria-hidden="true"></span>
+                            </button>
+                            <button class="key icon-key" id="pause-btn" aria-label="Pause">
+                                <span class="icon icon-pause" aria-hidden="true"></span>
+                            </button>
+                            <button class="key icon-key" id="repeat-btn" aria-label="Loop" aria-pressed="false">
+                                <span class="icon icon-repeat" aria-hidden="true"></span>
+                            </button>
+                            <button class="key icon-key" id="mute-btn" aria-label="Mute" aria-pressed="false">
+                                <span class="icon icon-volume" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p id="now-playing" class="sr-only" aria-live="polite"></p>
+                </article>
+
+                <!-- waveform -->
+                <article class="monitor area-wave">
+                    <header class="monitor-label">
+                        <span class="icon icon-waveform" aria-hidden="true"></span> Audio
+                    </header>
+                    <div class="monitor-screen" id="wave-screen"></div>
+                </article>
+
+                <!-- code / system log -->
+                <article class="monitor area-code">
+                    <div class="monitor-screen terminal" aria-hidden="true">
+                        <pre id="log">&gt; earthlight.fm v1.0
+&gt; booting control room</pre>
+                    </div>
+                </article>
+
+                <!-- notes -->
+                <article class="monitor area-notes" aria-label="Notes">
+                    <div class="monitor-screen" id="notes-screen"></div>
+                </article>
+
+                <!-- printer -->
+                <article class="printer area-printer">
+                    <div class="printer-top">
+                        <span class="monitor-label">
+                            <span class="icon icon-printer" aria-hidden="true"></span> Field report printer
+                        </span>
+                        <button class="key print-key" id="print-btn">Print</button>
+                    </div>
+                    <div class="printer-slot" aria-hidden="true"></div>
+                    <div class="paper" id="paper" aria-live="polite">
+                        <p>Nothing printed yet. Play a region, then press Print.</p>
+                    </div>
+                </article>
+
+            </div>
+        </section>
     </main>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
