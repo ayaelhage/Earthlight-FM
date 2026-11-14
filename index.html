@@ -4,14 +4,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthlight FM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&family=VT323&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="stylesheet" href="style.css">
-    <title>Earthlight-FM</title>
 </head>
 
 <body>
-    <h1>Earthlight-FM</h1>
 
-    <canvas id="dots"></canvas>
+    <!-- HEADER -->
+    <header class="site-header">
+        <a href="#top" class="logo">
+            <span class="icon icon-sparkles" aria-hidden="true"></span>
+            Earthlight <span class="logo-fm">FM</span>
+        </a>
+
+        <nav aria-label="Main">
+            <ul class="nav-links">
+                <li><a href="#screens">Control room</a></li>
+                <li><a href="#how">How it works</a></li>
+                <li><a href="#credits">Credits</a></li>
+            </ul>
+        </nav>
+
+        <span class="on-air" id="on-air" role="status">
+            <span class="on-air-dot" aria-hidden="true"></span>
+            <span id="on-air-text">Standby</span>
+        </span>
+    </header>
+
+    <main id="top">
+
+        <!-- HERO -->
+        <section class="hero">
+            <canvas id="dots" aria-hidden="true"></canvas>
+
+            <div class="hero-text">
+                <p class="eyebrow">NASA Space Apps 2026 · Earth Information Jukebox</p>
+                <h1>Every light is a person, a home, <em>a sound.</em></h1>
+                <p class="hero-lead">
+                    Earthlight FM turns NASA's Black Marble night lights into music, so anyone can
+                    experience how our planet changed between 2012 and 2023, even without seeing it.
+                </p>
+                <div class="hero-actions">
+                    <a href="#screens" class="btn btn-primary">
+                        <span class="icon icon-power" aria-hidden="true"></span> Start listening
+                    </a>
+                    <a href="#how" class="btn btn-ghost">How it works</a>
+                </div>
+            </div>
+
+            <div class="map-key">
+                <p class="map-key-title">Map key</p>
+                <ul>
+                    <li><span class="key-dot key-new" aria-hidden="true"></span> Purple: Increaed nighttime illumination (2012-2023)</li>
+                    <li><span class="key-dot key-lost" aria-hidden="true"></span> Orange: Decreased nighttime illumination (2012-2023)</li>
+                </ul>
+            </div>
+        </section>
+
+    </main>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="script.js"></script>
 </body>
