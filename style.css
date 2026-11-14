@@ -850,3 +850,41 @@ button:focus-visible {
   opacity: 0.6;
   cursor: wait;
 }
+
+/* ===== FOOTER ===== */
+.site-footer {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 64px;
+  padding: 56px 48px 40px;
+  border-top: 1px solid rgba(202, 197, 229, 0.2);
+  color: var(--periwinkle);
+}
+
+.footer-brand .logo {
+  margin: 0;
+}
+
+.footer-tagline {
+  margin: 8px 0 0;
+  font-family: var(--font-logo);
+  font-size: 1.3rem;
+  color: var(--honeydew);
+}
+
+.footer-col h3 {
+  margin: 0 0 12px;
+  font-family: var(--font-screen);
+  font-size: 1.3rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vanilla);
+}
+
+.footer-col p {
+  margin: 0 0 8px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  max-width: 34ch;
+}
