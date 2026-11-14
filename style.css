@@ -217,7 +217,7 @@ a {
     min-height: 100vh;
     display: flex;
     align-items: center;
-    padding: 120px 48px 80px;
+    padding: 120px 48px 60px;
     overflow: hidden;
 }
 
@@ -378,7 +378,7 @@ button:focus-visible {
 
 /* ===== SCREEN WALL ===== */
 .screens {
-    padding: 96px 48px;
+    padding: 24px 48px 96px;
 }
 
 .section-title {
@@ -646,6 +646,68 @@ button:focus-visible {
     clip: rect(0 0 0 0);
     white-space: nowrap;
     border: 0;
+}
+
+/* ----- globe ----- */
+.globe {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: url("assets/images/lights-change.jpg") repeat-x;
+  background-size: 280px 157.5px;
+  background-position: 0 -8.75px;
+  box-shadow: 0 0 30px rgba(185, 139, 255, 0.35);
+  animation: globe-spin 30s linear infinite;
+  transition: background-position-x 0.3s ease;
+}
+
+/* Earth turns west → east, so the map slides to the right */
+@keyframes globe-spin {
+  from { background-position-x: 0; }
+  to   { background-position-x: 280px; }
+}
+
+/* when following the music, JavaScript controls the position */
+.globe.is-tracking {
+  animation: none;
+}
+
+/* shading: light from the top-left, dark edges = looks round */
+.globe::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.15), transparent 45%),
+    radial-gradient(circle, transparent 55%, rgba(13, 2, 33, 0.85) 100%);
+}
+
+/* ----- graph ----- */
+#graph-screen {
+  align-items: stretch;
+  padding: 10px;
+}
+
+#graph {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ----- waveform + notes ----- */
+#wave-screen,
+#notes-screen {
+  align-items: stretch;
+  padding: 10px;
+}
+
+#wave,
+#notes {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 /* ===== ACCESSIBILITY: less motion ===== */

@@ -1,33 +1,33 @@
-// ===== NIGHT LIGHTS IMAGE =====
-const img = new Image();
-img.src = "assets/images/lights-change.jpg";
+// ===== HERO: high-detail night lights (visual only) =====
+const heroImg = new Image();
+heroImg.src = "assets/images/lights-change-hd.jpg";
 
-img.onload = () => {
-  // 1. Read NASA's pixels (invisible canvas)
+heroImg.onload = () => {
+  // 1. Read the pixels (invisible canvas)
   const reader = document.createElement("canvas");
-  reader.width = img.width;
-  reader.height = img.height;
+  reader.width = heroImg.width;
+  reader.height = heroImg.height;
   const readerCtx = reader.getContext("2d");
-  readerCtx.drawImage(img, 0, 0);
-  const pixels = readerCtx.getImageData(0, 0, img.width, img.height).data;
+  readerCtx.drawImage(heroImg, 0, 0);
+  const pixels = readerCtx.getImageData(0, 0, heroImg.width, heroImg.height).data;
 
   // 2. Visible canvas
   const canvas = document.getElementById("dots");
   const ctx = canvas.getContext("2d");
-  canvas.width = img.width;
-  canvas.height = img.height;
+  canvas.width = heroImg.width;
+  canvas.height = heroImg.height;
 
-  const step = 6;        // size of each grid cell
+  const step = 8;        // size of each grid cell (bigger image → finer dots)
   const threshold = 25;  // minimum brightness to count as a light
 
-  for (let y = 0; y < img.height; y += step) {
-    for (let x = 0; x < img.width; x += step) {
+  for (let y = 0; y < heroImg.height; y += step) {
+    for (let x = 0; x < heroImg.width; x += step) {
 
       // 3. Find the BRIGHTEST pixel inside this cell
       let best = 0, r = 0, g = 0, b = 0;
-      for (let dy = 0; dy < step && y + dy < img.height; dy++) {
-        for (let dx = 0; dx < step && x + dx < img.width; dx++) {
-          const i = ((y + dy) * img.width + (x + dx)) * 4;
+      for (let dy = 0; dy < step && y + dy < heroImg.height; dy++) {
+        for (let dx = 0; dx < step && x + dx < heroImg.width; dx++) {
+          const i = ((y + dy) * heroImg.width + (x + dx)) * 4;
           const brightness = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
           if (brightness > best) {
             best = brightness;
@@ -46,14 +46,11 @@ img.onload = () => {
         const alpha = 0.35 + (best / 255) * 0.65;
         ctx.fillStyle = color;
 
-        // glow: a bigger, very transparent circle behind the dot
         ctx.globalAlpha = alpha * 0.25;
         ctx.beginPath();
         ctx.arc(x + step / 2, y + step / 2, size * 2.2, 0, Math.PI * 2);
         ctx.fill();
 
-
-        // the dot itself
         ctx.globalAlpha = alpha;
         ctx.beginPath();
         ctx.arc(x + step / 2, y + step / 2, size, 0, Math.PI * 2);
@@ -61,18 +58,32 @@ img.onload = () => {
       }
     }
   }
+  log("hero map drawn · high detail");
+};
 
-  // 6. Runs ONCE, after all the dots are drawn
-  nasaPixels = pixels;
-  imgW = img.width;
-  imgH = img.height;
+heroImg.onerror = () => console.log("HD hero image NOT found. Check the name and folder!");
+
+
+// ===== DATA: NASA image used by the sound engine =====
+const dataImg = new Image();
+dataImg.src = "assets/images/lights-change.jpg";
+
+dataImg.onload = () => {
+  const reader = document.createElement("canvas");
+  reader.width = dataImg.width;
+  reader.height = dataImg.height;
+  const readerCtx = reader.getContext("2d");
+  readerCtx.drawImage(dataImg, 0, 0);
+
+  nasaPixels = readerCtx.getImageData(0, 0, dataImg.width, dataImg.height).data;
+  imgW = dataImg.width;
+  imgH = dataImg.height;
   log("NASA SVS 5276 · night lights loaded");
-  log(`image ${img.width} x ${img.height} px`);
+  log(`image ${imgW} x ${imgH} px`);
   selectRegion("world");
 };
 
-img.onerror = () => console.log("Image NOT found. Check the name and folder!");
-
+dataImg.onerror = () => console.log("Data image NOT found. Check the name and folder!");
 
 // ===== ON AIR / STANDBY INDICATOR =====
 const onAir = document.getElementById("on-air");
@@ -205,18 +216,21 @@ Tone.Transport.scheduleRepeat((time) => {
   }
 
   const s = strips[playStep];
-  const played = [];
+  const played = [];   // text for the log
+  const events = [];   // data for the notes screen
 
   if (s.gained > 0.05) {
     const note = pickNote(KALIMBA_NOTES, s.gained);
     kalimba.triggerAttackRelease(note, "8n", time, 0.3 + s.gained * 0.7);
     played.push(`+light ${note}`);
+    events.push({ note, kind: "gain", strength: s.gained });
   }
 
   if (s.lost > 0.05) {
     const note = pickNote(STYLO_NOTES, s.lost);
     stylophone.triggerAttackRelease(note, "16n", time, 0.3 + s.lost * 0.7);
     played.push(`-light ${note}`);
+    events.push({ note, kind: "loss", strength: s.lost });
   }
 
   // longitude of this strip (the map goes from 180°W to 180°E)
@@ -227,6 +241,9 @@ Tone.Transport.scheduleRepeat((time) => {
   const current = playStep + 1;
   Tone.Draw.schedule(() => {
     log(`strip ${current}/${STRIPS} · ${lonText} · ${played.join(" ") || "silence"}`);
+    pointGlobeAt(lon);
+    drawGraph(current - 1);
+    spawnNotes(events);
   }, time);
 
   playStep++;
@@ -240,7 +257,10 @@ function stopPlayback() {
   playBtn.classList.remove("is-on");
   nowPlaying.textContent = `Finished playing ${currentRegion}.`;
   log("end of track");
+  if (currentKey === "world") setGlobeTracking(false);
+  drawGraph(-1);
 }
+
 
 
 // ===== BUTTONS =====
@@ -257,6 +277,7 @@ playBtn.addEventListener("click", async () => {
     return;
   }
   Tone.Transport.start();
+  setGlobeTracking(true);
   setOnAir(true);
   playBtn.classList.add("is-on");
   nowPlaying.textContent = `Playing ${currentRegion}. Kalimba means more light, stylophone means less light.`;
@@ -337,6 +358,15 @@ function selectRegion(key) {
 
   nowPlaying.textContent = `${r.name} selected. Press play to listen.`;
   log(`region: ${r.name} · ${STRIPS} strips ready`);
+
+  currentKey = key;
+  if (key === "world") {
+    setGlobeTracking(false);
+  } else {
+    setGlobeTracking(true);
+    pointGlobeAt((r.west + r.east) / 2);
+  }
+  drawGraph(-1);
 }
 
 document.getElementById("world-btn").addEventListener("click", () => selectRegion("world"));
@@ -423,3 +453,214 @@ fetch("assets/icons/world.svg")
     log("world map loaded · 6 regions");
   })
   .catch(() => log("could not load world.svg"));
+
+  // ===== GLOBE =====
+const globe = document.getElementById("globe");
+const GLOBE_SIZE = 140;
+const GLOBE_MAP_W = GLOBE_SIZE * 2;
+let currentKey = "world";
+
+// turns the globe so this longitude faces the viewer
+function pointGlobeAt(lon) {
+  const mapX = ((lon + 180) / 360) * GLOBE_MAP_W;
+  globe.style.backgroundPositionX = `${GLOBE_SIZE / 2 - mapX}px`;
+}
+
+function setGlobeTracking(on) {
+  globe.classList.toggle("is-tracking", on);
+}
+
+
+// ===== BRIGHTNESS GRAPH =====
+const graphCanvas = document.getElementById("graph");
+let activeStrip = -1;
+
+function drawGraph(active = activeStrip) {
+  activeStrip = active;
+  const w = graphCanvas.clientWidth;
+  const h = graphCanvas.clientHeight;
+  if (!w || !h) return;
+
+  // sharp on high-resolution screens
+  const dpr = window.devicePixelRatio || 1;
+  graphCanvas.width = w * dpr;
+  graphCanvas.height = h * dpr;
+  const g = graphCanvas.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+
+  // labels
+  g.font = "16px VT323";
+  g.fillStyle = "#CAC5E5";
+  g.fillText("+ MORE LIGHT", 4, 14);
+  g.fillText("- LESS LIGHT", 4, h - 4);
+
+  const top = 22;
+  const bottom = h - 20;
+  const mid = (top + bottom) / 2;
+  const half = (bottom - top) / 2;
+
+  // dashed center line (= no change)
+  g.strokeStyle = "rgba(202, 197, 229, 0.3)";
+  g.setLineDash([4, 4]);
+  g.beginPath();
+  g.moveTo(0, mid);
+  g.lineTo(w, mid);
+  g.stroke();
+  g.setLineDash([]);
+
+  if (!strips.length) return;
+
+  // one bar pair per strip
+  const bw = w / STRIPS;
+  strips.forEach((s, i) => {
+    const x = i * bw + 1;
+    const on = i === active;
+    g.fillStyle = on ? "#F2E0A4" : "#B98BFF";              // gained: up
+    g.fillRect(x, mid - s.gained * half, bw - 2, s.gained * half);
+    g.fillStyle = on ? "#F2E0A4" : "#F5A35C";              // lost: down
+    g.fillRect(x, mid, bw - 2, s.lost * half);
+  });
+
+  // playhead
+  if (active >= 0) {
+    g.strokeStyle = "#F2E0A4";
+    g.beginPath();
+    g.moveTo(active * bw + bw / 2, top);
+    g.lineTo(active * bw + bw / 2, bottom);
+    g.stroke();
+  }
+}
+
+window.addEventListener("resize", () => drawGraph());
+
+// ===== LIVE SCREENS: WAVEFORM + NOTES =====
+const waveCanvas = document.getElementById("wave");
+const notesCanvas = document.getElementById("notes");
+
+// listens to everything going to the speakers
+const waveform = new Tone.Waveform(512);
+Tone.Destination.connect(waveform);
+
+// sizes a canvas sharply and clears it
+function fitCanvas(c) {
+  const w = c.clientWidth;
+  const h = c.clientHeight;
+  const dpr = window.devicePixelRatio || 1;
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+    c.width = Math.round(w * dpr);
+    c.height = Math.round(h * dpr);
+  }
+  const g = c.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  return { g, w, h };
+}
+
+// --- notes data ---
+const MIDI_LOW = 36;   // C2, lowest stylophone note
+const MIDI_HIGH = 81;  // A5, highest kalimba note
+let noteParticles = [];
+let lastNote = "--";
+
+function spawnNotes(events) {
+  events.forEach(e => {
+    noteParticles.push({
+      note: e.note,
+      midi: Tone.Frequency(e.note).toMidi(),
+      kind: e.kind,
+      size: 3 + e.strength * 5,
+      x: 1                // starts at the right edge (1 = 100%)
+    });
+    lastNote = e.note;
+  });
+}
+
+// --- waveform screen ---
+function drawWave() {
+  const { g, w, h } = fitCanvas(waveCanvas);
+  const mid = h / 2;
+
+  // faint grid like an oscilloscope
+  g.strokeStyle = "rgba(202, 197, 229, 0.12)";
+  g.lineWidth = 1;
+  for (let x = 0; x < w; x += 24) {
+    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke();
+  }
+  for (let y = 0; y < h; y += 24) {
+    g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
+  }
+
+  // the sound wave
+  const values = waveform.getValue();
+  g.strokeStyle = "#F2E0A4";
+  g.lineWidth = 2;
+  g.beginPath();
+  values.forEach((v, i) => {
+    const x = (i / (values.length - 1)) * w;
+    const y = mid - v * (h / 2) * 0.9;
+    if (i === 0) g.moveTo(x, y);
+    else g.lineTo(x, y);
+  });
+  g.stroke();
+}
+
+// --- notes screen (piano roll) ---
+function drawNotes(dt) {
+  const { g, w, h } = fitCanvas(notesCanvas);
+  const top = 28;
+  const bottom = h - 10;
+
+  // staff lines
+  g.strokeStyle = "rgba(202, 197, 229, 0.15)";
+  g.lineWidth = 1;
+  for (let i = 0; i < 5; i++) {
+    const y = top + ((bottom - top) / 4) * i;
+    g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
+  }
+
+  // current note
+  g.font = "18px VT323";
+  g.fillStyle = "#CAC5E5";
+  g.fillText(`NOTE  ${lastNote}`, 4, 18);
+
+  const playing = Tone.Transport.state === "started";
+  if (!playing && noteParticles.length === 0) {
+    g.fillStyle = "rgba(202, 197, 229, 0.6)";
+    g.fillText("WAITING FOR SIGNAL", 4, h / 2 + 6);
+  }
+
+  // move and draw every note
+  noteParticles.forEach(p => {
+    p.x -= dt / 4000;                    // crosses the screen in ~4 seconds
+    const px = p.x * w;
+    const py = bottom - ((p.midi - MIDI_LOW) / (MIDI_HIGH - MIDI_LOW)) * (bottom - top);
+    const color = p.kind === "gain" ? "#B98BFF" : "#F5A35C";
+
+    g.globalAlpha = 0.25;                // glow
+    g.fillStyle = color;
+    g.beginPath(); g.arc(px, py, p.size * 2, 0, Math.PI * 2); g.fill();
+
+    g.globalAlpha = 1;                   // dot
+    g.beginPath(); g.arc(px, py, p.size, 0, Math.PI * 2); g.fill();
+
+    g.font = "14px VT323";               // note name
+    g.fillStyle = "#F6FFE9";
+    g.fillText(p.note, px + p.size + 3, py + 4);
+  });
+
+  noteParticles = noteParticles.filter(p => p.x > -0.05);
+}
+
+// --- one animation loop for both screens ---
+let lastFrame = performance.now();
+
+function animateScreens(now) {
+  const dt = now - lastFrame;
+  lastFrame = now;
+  drawWave();
+  drawNotes(dt);
+  requestAnimationFrame(animateScreens);
+}
+
+requestAnimationFrame(animateScreens);
