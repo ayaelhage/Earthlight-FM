@@ -1,3 +1,7 @@
+// Earthlight FM · NASA Space Apps 2026 · by Aya El Hage
+// Code written with the help of an AI assistant (Claude) for generation and debugging;
+// reviewed, tested and customized by the author.
+
 // No gravity: makes the credits float
 const gravityBtn = document.getElementById("gravity-btn");
 const porthole = document.getElementById("porthole");

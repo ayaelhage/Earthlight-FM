@@ -1,3 +1,7 @@
+// Earthlight FM · NASA Space Apps 2026 · by Aya El Hage
+// Code written with the help of an AI assistant (Claude) for generation and debugging;
+// reviewed, tested and customized by the author.
+
 // ===== HERO: high-detail night lights (visual only) =====
 const heroImg = new Image();
 heroImg.src = "assets/images/lights-change.jpg";
