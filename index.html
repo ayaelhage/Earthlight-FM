@@ -25,7 +25,7 @@
 
         <nav aria-label="Main">
             <ul class="nav-links">
-                <li><a href="index.html">Control room</a></li>
+                <li><a href="#screens">Control room</a></li>
                 <li><a href="#how">How it works</a></li>
                 <li><a href="#credits">Credits</a></li>
             </ul>
@@ -104,7 +104,7 @@
                     </header>
 
                     <div class="deck">
-                        <div class="deck-years" role="group" aria-label="Choose a year">
+                        <div class="deck-years" role="group" aria-label="Choose one year, or two years to compare">
                             <button class="key year-key" data-year="2012" aria-pressed="false">2012</button>
                             <button class="key year-key" data-year="2013" aria-pressed="false">2013</button>
                             <button class="key year-key" data-year="2014" aria-pressed="false">2014</button>
@@ -209,6 +209,49 @@
             <p>NASA Space Apps 2026 · Built by Aya El Hage</p>
         </div>
     </footer>
+
+    <!-- HOW IT WORKS POP-UP -->
+    <dialog class="retro-window" id="how" aria-labelledby="how-title">
+        <div class="window-bar">
+            <h2 id="how-title">HOW_IT_WORKS.EXE</h2>
+            <span class="window-stripes" aria-hidden="true"></span>
+            <button class="window-close" id="how-close" aria-label="Close">
+                <span class="icon icon-close" aria-hidden="true"></span>
+            </button>
+        </div>
+
+        <div class="window-body">
+            <img class="how-photo" src="assets/images/controlpanel.jpg"
+                 alt="Vintage NASA aircraft instrument panel full of dials and switches">
+
+            <div class="how-content">
+                <p class="window-intro">Earthlight FM turns NASA's night lights into music. Here's how to tune in:</p>
+
+                <ol class="how-steps">
+                    <li><div><strong>Pick a place</strong><span>Click a continent on the map, or press World.</span></div></li>
+                    <li><div><strong>Pick a time</strong><span>What changed (2012 → 2023), one year, or two years to compare.</span></div></li>
+                    <li><div><strong>Press Play</strong><span>The region is read from west to east, one note per slice.</span></div></li>
+                    <li><div><strong>Watch the screens</strong><span>The globe, graph, notes and log follow the music.</span></div></li>
+                    <li><div><strong>Press Print</strong><span>Get a field report explaining what you heard.</span></div></li>
+                </ol>
+
+                <div class="how-legend">
+                    <p class="how-legend-title">What you hear</p>
+                    <ul>
+                        <li><span class="legend-chip chip-kalimba" aria-hidden="true"></span> Kalimba: more light, or brighter</li>
+                        <li><span class="legend-chip chip-stylo" aria-hidden="true"></span> Stylophone: less light, or dimmer</li>
+                        <li><span class="legend-chip chip-silence" aria-hidden="true"></span> Silence: no lights, or no real change</li>
+                        <li>Higher, louder notes mean a stronger signal.</li>
+                    </ul>
+                </div>
+
+                <div class="window-actions">
+                    <p class="window-hint">Tab · Enter · Esc to close</p>
+                    <button class="pixel-btn" id="how-ok">Start listening</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <script src="script.js"></script>

@@ -298,10 +298,12 @@ playBtn.addEventListener("click", async () => {
   setGlobeTracking(true);
   setOnAir(true);
   playBtn.classList.add("is-on");
-  nowPlaying.textContent = currentMode === "change"
-    ? `Playing ${currentRegion}, what changed from 2012 to 2023. Kalimba means more light, stylophone means less light.`
-    : `Playing ${currentRegion} in ${currentYear}. Higher, louder notes mean brighter lights.`;
-  log(`play · ${currentRegion}`);
+  nowPlaying.textContent = {
+    change: `Playing ${currentRegion}, what changed from 2012 to 2023. Kalimba means more light, stylophone means less light.`,
+    brightness: `Playing ${currentRegion} in ${currentYear}. Higher, louder notes mean brighter lights.`,
+    compare: `Playing ${currentRegion}, comparing ${yearLabel()}. Kalimba means brighter, stylophone means dimmer.`
+  }[currentMode];
+  log(`play · ${currentRegion} · ${yearLabel()}`);
 });
 
 pauseBtn.addEventListener("click", () => {
@@ -318,11 +320,20 @@ repeatBtn.addEventListener("click", () => {
   log(`loop ${loopOn ? "on" : "off"}`);
 });
 
+const muteIcon = muteBtn.querySelector(".icon");
+
 muteBtn.addEventListener("click", () => {
-  Tone.Destination.mute = !Tone.Destination.mute;
-  muteBtn.setAttribute("aria-pressed", Tone.Destination.mute);
-  log(Tone.Destination.mute ? "muted" : "sound on");
+  const muted = !Tone.Destination.mute;
+  Tone.Destination.mute = muted;
+  muteBtn.setAttribute("aria-pressed", muted);
+
+  // swap the icon: speaker ↔ speaker with a slash
+  muteIcon.classList.toggle("icon-volume", !muted);
+  muteIcon.classList.toggle("icon-mute", muted);
+
+  log(muted ? "muted" : "sound on");
 });
+
 
 
 // ===== REGIONS (latitude / longitude boxes) =====
@@ -331,13 +342,13 @@ let imgW = 0;
 let imgH = 0;
 
 const REGIONS = {
-  "world":         { name: "the whole world", west: -180, east: 180, north: 90, south: -90 },
-  "north-america": { name: "North America",   west: -170, east: -50, north: 84, south: 7 },
-  "south-america": { name: "South America",   west: -92,  east: -32, north: 13, south: -56 },
-  "europe":        { name: "Europe",          west: -25,  east: 45,  north: 72, south: 34 },
-  "africa":        { name: "Africa",          west: -20,  east: 55,  north: 38, south: -36 },
-  "asia":          { name: "Asia",            west: 45,   east: 180, north: 78, south: -11 },
-  "oceania":       { name: "Oceania",         west: 110,  east: 180, north: 0,  south: -48 }
+  "world": { name: "the whole world", west: -180, east: 180, north: 90, south: -90 },
+  "north-america": { name: "North America", west: -170, east: -50, north: 84, south: 7 },
+  "south-america": { name: "South America", west: -92, east: -32, north: 13, south: -56 },
+  "europe": { name: "Europe", west: -25, east: 45, north: 72, south: 34 },
+  "africa": { name: "Africa", west: -20, east: 55, north: 38, south: -36 },
+  "asia": { name: "Asia", west: 45, east: 180, north: 78, south: -11 },
+  "oceania": { name: "Oceania", west: 110, east: 180, north: 0, south: -48 }
 };
 
 // turns a latitude/longitude box into a pixel rectangle on NASA's flat map
@@ -362,7 +373,8 @@ function trimBox(box) {
   const T = 0.05;
   // years are all trimmed using 2023, so every year uses the SAME box
   const refPixels = currentMode === "change" ? changePixels : yearCache[2023];
-  const test = analyzeRegion(refPixels, imgW, box, currentMode);
+  const refMode = currentMode === "change" ? "change" : "brightness";
+  const test = analyzeRegion(refPixels, imgW, box, refMode);
   const first = test.findIndex(s => s.gained > T || s.lost > T);
   if (first === -1) return box;
 
@@ -419,20 +431,20 @@ document.getElementById("world-btn").addEventListener("click", () => selectRegio
 const CODES = {
   "north-america": "AI AW BB BZ BM VG CR CU CW DM DO SV GL GD GT HT HN JM MQ MX MS NI PA LC VC BL MF SX BQSA BQSE BQBO",
   "south-america": "BO BR CO EC GF GY PY PE SR UY VE",
-  "europe":        "AL AT BY BE BA BG HR CZ EE FI DE HU IS IE XK LV LT LU MK MD ME NL PL PT RO RS SK SI ES SE CH UA",
-  "africa":        "DZ BJ BW BF BI CM CF TD CI CD DJ EG GQ ER ET GA GH GN GW KE LS LR LY MG MW ML MR YT MA MZ NA NE NG CG RE RW SN SL SO ZA SS SD SZ TZ GM TG TN UG EH ZM ZW",
-  "asia":          "AF AM BH BD BT BN KH KP GE IN IR IQ IL JO KZ KW KG LA LB MV MN MM NP PK PS QA KR SA LK SY TW TJ TH TL TM AE UZ VN YE",
-  "oceania":       "GU MH NR PW TV"
+  "europe": "AL AT BY BE BA BG HR CZ EE FI DE HU IS IE XK LV LT LU MK MD ME NL PL PT RO RS SK SI ES SE CH UA",
+  "africa": "DZ BJ BW BF BI CM CF TD CI CD DJ EG GQ ER ET GA GH GN GW KE LS LR LY MG MW ML MR YT MA MZ NA NE NG CG RE RW SN SL SO ZA SS SD SZ TZ GM TG TN UG EH ZM ZW",
+  "asia": "AF AM BH BD BT BN KH KP GE IN IR IQ IL JO KZ KW KG LA LB MV MN MM NP PK PS QA KR SA LK SY TW TJ TH TL TM AE UZ VN YE",
+  "oceania": "GU MH NR PW TV"
 };
 
 // countries in SEVERAL pieces use their name (class)
 const NAMES = {
   "north-america": ["Canada", "United States", "Bahamas", "Antigua and Barbuda", "Cayman Islands", "Puerto Rico", "Saint Kitts and Nevis", "Trinidad and Tobago", "Turks and Caicos Islands", "United States Virgin Islands"],
   "south-america": ["Argentina", "Chile", "Falkland Islands"],
-  "europe":        ["Russian Federation", "United Kingdom", "France", "Italy", "Greece", "Norway", "Denmark", "Cyprus", "Malta", "Faeroe Islands"],
-  "africa":        ["Angola", "Cape Verde", "Comoros", "Mauritius", "Sao Tome and Principe", "Seychelles", "Canary Islands (Spain)"],
-  "asia":          ["China", "Japan", "Indonesia", "Malaysia", "Philippines", "Oman", "Azerbaijan", "Turkey"],
-  "oceania":       ["Australia", "New Zealand", "Papua New Guinea", "Fiji", "Solomon Islands", "Vanuatu", "New Caledonia", "French Polynesia", "Samoa", "American Samoa", "Kiribati", "Federated States of Micronesia", "Northern Mariana Islands", "Tonga"]
+  "europe": ["Russian Federation", "United Kingdom", "France", "Italy", "Greece", "Norway", "Denmark", "Cyprus", "Malta", "Faeroe Islands"],
+  "africa": ["Angola", "Cape Verde", "Comoros", "Mauritius", "Sao Tome and Principe", "Seychelles", "Canary Islands (Spain)"],
+  "asia": ["China", "Japan", "Indonesia", "Malaysia", "Philippines", "Oman", "Azerbaijan", "Turkey"],
+  "oceania": ["Australia", "New Zealand", "Papua New Guinea", "Fiji", "Solomon Islands", "Vanuatu", "New Caledonia", "French Polynesia", "Samoa", "American Samoa", "Kiribati", "Federated States of Micronesia", "Northern Mariana Islands", "Tonga"]
 };
 
 // build one lookup table: country → continent
@@ -534,8 +546,13 @@ function drawGraph(active = activeStrip) {
   // labels
   g.font = "16px VT323";
   g.fillStyle = "#CAC5E5";
-  g.fillText(currentMode === "change" ? "+ MORE LIGHT" : `BRIGHTNESS ${currentYear}`, 4, 14);
-  if (currentMode === "change") g.fillText("- LESS LIGHT", 4, h - 4);
+  const topLabel = {
+    change: "+ MORE LIGHT",
+    brightness: `BRIGHTNESS ${currentYear}`,
+    compare: `+ BRIGHTER ${yearLabel()}`
+  }[currentMode];
+  g.fillText(topLabel, 4, 14);
+  if (currentMode !== "brightness") g.fillText("- LESS LIGHT", 4, h - 4);
 
   const top = 22;
   const bottom = h - 20;
@@ -854,7 +871,7 @@ printBtn.addEventListener("click", async () => {
   log(`printing report · ${currentRegion}`);
   if (printerSound.loaded) printerSound.start();
 
-  const lines = currentMode === "change" ? buildReport() : buildYearReport();
+  const lines = { change: buildReport, brightness: buildYearReport, compare: buildCompareReport }[currentMode]();
   lines.forEach((l, i) => {
     setTimeout(() => {
       const el = document.createElement(l.type === "rule" ? "hr" : "p");
@@ -876,10 +893,13 @@ printBtn.addEventListener("click", async () => {
 
 // ===== YEARS (2012–2023 frames) =====
 let changePixels = null;
-let currentMode = "change";   // "change" or "brightness"
-let currentYear = "change";
-let yearVs2023 = 1;            // total light of this year compared to 2023
-const yearCache = {};          // year → pixels, loaded only when needed
+let currentMode = "change";   // "change", "brightness" (1 year) or "compare" (2 years)
+let currentYear = "change";   // the newest selected year
+let picked = [];              // years in the order they were clicked
+let selectedYears = [];       // the same years, sorted (older first)
+let yearVs2023 = 1;           // single year: total light compared to 2023
+let compareRatio = 1;         // two years: newer total light ÷ older total light
+const yearCache = {};         // year → pixels, loaded only when needed
 
 // loads a year's image once, resizes it to match the data map, then remembers it
 function loadYearPixels(year) {
@@ -889,10 +909,10 @@ function loadYearPixels(year) {
     im.src = `assets/images/lights-${year}.jpg`;
     im.onload = () => {
       const c = document.createElement("canvas");
-      c.width = imgW;                         // same size as lights-change.jpg
+      c.width = imgW;
       c.height = imgH;
       const cx = c.getContext("2d");
-      cx.drawImage(im, 0, 0, imgW, imgH);     // stretch/shrink to fit exactly
+      cx.drawImage(im, 0, 0, imgW, imgH);
       if (im.width !== imgW) log(`${year}: resized ${im.width}x${im.height} → ${imgW}x${imgH}`);
       yearCache[year] = cx.getImageData(0, 0, imgW, imgH).data;
       resolve(yearCache[year]);
@@ -901,24 +921,55 @@ function loadYearPixels(year) {
   });
 }
 
+// text like "2012 → 2023", "2016" or "2012 → 2018"
+function yearLabel() {
+  if (currentMode === "change") return "2012 → 2023";
+  if (currentMode === "compare") return `${selectedYears[0]} → ${selectedYears[1]}`;
+  return `${currentYear}`;
+}
+
 // the strips for the current mode
 function computeStrips(box) {
   if (currentMode === "change") {
     return analyzeRegion(changePixels, imgW, box, "change");
   }
-  // year mode: scale against 2023 so years can be compared
+
+  if (currentMode === "compare") {
+    const [older, newer] = selectedYears;
+    const a = analyzeRegion(yearCache[older], imgW, box, "brightness", true);
+    const b = analyzeRegion(yearCache[newer], imgW, box, "brightness", true);
+
+    const sumA = a.reduce((t, s) => t + s.gained, 0);
+    const sumB = b.reduce((t, s) => t + s.gained, 0);
+    compareRatio = sumA ? sumB / sumA : 1;
+
+    // each strip measured by its OWN percentage change
+    return b.map((s, i) => {
+      const before = a[i].gained;
+      const after = s.gained;
+      if (before === 0 && after === 0) return { gained: 0, lost: 0 };   // dark both years
+
+      const rel = (after - before) / Math.max(before, 0.0001);   // +0.2 = 20% brighter
+      if (Math.abs(rel) < 0.05) return { gained: 0, lost: 0 };   // under 5% = no real change
+
+      const strength = Math.min(1, Math.abs(rel) / 0.5);          // 50% or more = full strength
+      return rel > 0 ? { gained: strength, lost: 0 } : { gained: 0, lost: strength };
+    });
+  }
+
+  // single year: brightness scaled against 2023
   const yearRaw = analyzeRegion(yearCache[currentYear], imgW, box, "brightness", true);
   const refRaw = analyzeRegion(yearCache[2023], imgW, box, "brightness", true);
   const refMax = Math.max(...refRaw.map(s => s.gained), 0.0001);
 
-  const yearSum = yearRaw.reduce((a, s) => a + s.gained, 0);
-  const refSum = refRaw.reduce((a, s) => a + s.gained, 0);
+  const yearSum = yearRaw.reduce((t, s) => t + s.gained, 0);
+  const refSum = refRaw.reduce((t, s) => t + s.gained, 0);
   yearVs2023 = refSum ? yearSum / refSum : 1;
 
   return yearRaw.map(s => ({ gained: Math.min(1, s.gained / refMax), lost: 0 }));
 }
 
-// the year keys
+// the year keys (+ What changed)
 const yearKeys = document.querySelectorAll(".year-key");
 
 yearKeys.forEach(key => key.addEventListener("click", async () => {
@@ -928,23 +979,144 @@ yearKeys.forEach(key => key.addEventListener("click", async () => {
     return;
   }
 
+  if (year === "change") {
+    picked = [];
+  } else {
+    const y = Number(year);
+    if (currentMode === "change") picked = [];     // coming from What changed: start fresh
+
+    if (picked.includes(y)) {
+      if (picked.length === 1) return;             // keep at least one year
+      picked = picked.filter(v => v !== y);        // click again = unselect
+    } else {
+      picked.push(y);
+      if (picked.length > 2) picked.shift();       // a third year replaces the first one
+    }
+  }
+
+  selectedYears = [...picked].sort((a, b) => a - b);
+
   try {
-    if (year !== "change") {
-      log(`loading ${year} frame...`);
-      await loadYearPixels(2023);   // the reference scale
-      await loadYearPixels(year);
+    if (selectedYears.length) {
+      log(`loading ${selectedYears.join(" + ")}...`);
+      await loadYearPixels(2023);                  // reference scale
+      for (const y of selectedYears) await loadYearPixels(y);
     }
   } catch (err) {
     log(err.message);
     return;
   }
 
-  currentYear = year === "change" ? "change" : Number(year);
-  currentMode = year === "change" ? "change" : "brightness";
+  if (selectedYears.length === 0) {
+    currentMode = "change";
+    currentYear = "change";
+  } else {
+    currentMode = selectedYears.length === 2 ? "compare" : "brightness";
+    currentYear = selectedYears[selectedYears.length - 1];
+  }
 
-  yearKeys.forEach(k => k.setAttribute("aria-pressed", k === key));
-  globe.style.backgroundImage = `url("assets/images/lights-${year}.jpg")`;
+  // light up the selected keys
+  yearKeys.forEach(k => {
+    const on = k.dataset.year === "change"
+      ? currentMode === "change"
+      : selectedYears.includes(Number(k.dataset.year));
+    k.setAttribute("aria-pressed", on);
+  });
 
-  selectRegion(currentKey);   // re-reads the same region with the new data
-  log(year === "change" ? "mode: what changed 2012 → 2023" : `mode: ${year} night lights`);
+  globe.style.backgroundImage = `url("assets/images/lights-${currentYear}.jpg")`;
+  selectRegion(currentKey);
+  log(`mode: ${currentMode === "compare" ? "compare " : ""}${yearLabel()}`);
 }));
+
+// field report for two years
+function buildCompareReport() {
+  const T = 0.05;
+  const [older, newer] = selectedYears;
+  const gainStrips = strips.filter(s => s.gained > T).length;
+  const lossStrips = strips.filter(s => s.lost > T).length;
+  const silent = strips.filter(s => s.gained <= T && s.lost <= T).length;
+
+  let peakGain = 0, peakLoss = 0;
+  strips.forEach((s, i) => {
+    if (s.gained > strips[peakGain].gained) peakGain = i;
+    if (s.lost > strips[peakLoss].lost) peakLoss = i;
+  });
+
+  const pct = Math.round((compareRatio - 1) * 100);
+  const totalText = pct === 0
+    ? `Total light stayed about the same from ${older} to ${newer}.`
+    : `Total light went ${pct > 0 ? "UP" : "DOWN"} ${Math.abs(pct)}% from ${older} to ${newer}.`;
+
+  const date = new Date().toLocaleString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+
+  const lines = [
+    { type: "title", text: "EARTHLIGHT FM · FIELD REPORT" },
+    { type: "meta", text: `${date} · Comparing ${older} → ${newer}` },
+    { type: "meta", text: `Region: ${currentRegion.toUpperCase()}` },
+    { type: "rule" },
+
+    { type: "head", text: "01 · THE LIGHTS" },
+    { type: "line", text: totalText },
+    { type: "line", text: `Brighter in ${gainStrips} of ${STRIPS} slices · dimmer in ${lossStrips} · no clear change in ${silent}.` }
+  ];
+  if (strips[peakGain].gained > T) lines.push({ type: "line", text: `Strongest growth near ${lonOfStrip(peakGain)}.` });
+  if (strips[peakLoss].lost > T) lines.push({ type: "line", text: `Strongest loss near ${lonOfStrip(peakLoss)}.` });
+
+  lines.push(
+    { type: "rule" },
+    { type: "head", text: "02 · WHY THIS MELODY?" },
+    { type: "line", text: `The region was read west → east in ${STRIPS} slices, one beat per slice.` },
+    { type: "line", text: `${gainStrips} kalimba notes = slices that got brighter in ${newer}. A bigger increase plays a higher, louder note.` },
+    { type: "line", text: `${gainStrips} kalimba notes = slices that got brighter in ${newer}. A bigger percentage change plays a higher, louder note.` },
+    { type: "line", text: `${silent} silences = changes smaller than 5%, treated as no change.` },
+    { type: "line", text: "Every note comes from a pentatonic scale, so the data stays musical." },
+
+    { type: "rule" },
+    { type: "head", text: "03 · WHAT CAN CHANGE NIGHT LIGHTS" },
+    { type: "line", text: "More light: growing cities, new roads and industry, homes getting electricity." },
+    { type: "line", text: "Less light: conflict, disasters, power cuts, or people leaving an area." },
+    { type: "line", text: "Note: satellite readings vary a little from year to year (clouds, moonlight, sensor changes)." },
+
+    { type: "rule" },
+    { type: "head", text: "04 · DATA" },
+    { type: "line", text: `NASA Black Marble night lights ${older} and ${newer} (Suomi NPP VIIRS) · NASA SVS 5276.` },
+    { type: "line", text: "Regions are approximate latitude/longitude boxes. Empty ocean at the edges is skipped." },
+    { type: "end", text: "✦ END OF TRANSMISSION ✦" }
+  );
+
+  return lines;
+}
+
+// ===== HOW IT WORKS POP-UP =====
+const howDialog = document.getElementById("how");
+
+// the "How it works" link in the header opens it
+document.querySelectorAll('a[href="#how"]').forEach(link => {
+  link.addEventListener("click", e => {
+    e.preventDefault();
+    howDialog.showModal();
+  });
+});
+
+document.getElementById("how-close").addEventListener("click", () => howDialog.close());
+
+// "Start listening" closes it and jumps to the control room
+document.getElementById("how-ok").addEventListener("click", () => {
+  howDialog.close();
+  document.getElementById("screens").scrollIntoView({ behavior: "smooth" });
+});
+
+// clicking the dark area outside the window closes it
+howDialog.addEventListener("click", e => {
+  if (e.target === howDialog) howDialog.close();
+});
+
+// show it automatically on the very first visit only
+try {
+  if (!localStorage.getItem("earthlight-seen-how")) {
+    howDialog.showModal();
+    localStorage.setItem("earthlight-seen-how", "yes");
+  }
+} catch (err) { /* storage blocked: skip the auto pop-up */ }
