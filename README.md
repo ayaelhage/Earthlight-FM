@@ -7,6 +7,7 @@ Built solo for the **2026 NASA Space Apps Challenge** · Challenge: *The Earth I
 
 🔗 **Live site:** https://ayaelhage.github.io/Earthlight-FM/
 
+**Notion documentation** https://app.notion.com/p/Earthlight-FM-NASA-416191fcce6d8099bc3af80c1b6b07f1#416191fcce6d80d780fbf92c98775937
 ---
 
 ## The idea
