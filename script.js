@@ -2,7 +2,7 @@
 // Code written with the help of an AI assistant (Claude) for generation and debugging;
 // reviewed, tested and customized by the author.
 
-// ===== HERO: high-detail night lights (visual only) =====
+// ===== HERO: night lights drawn as dots (visual only) =====
 const heroImg = new Image();
 heroImg.src = "assets/images/lights-change.jpg";
 
@@ -21,7 +21,7 @@ heroImg.onload = () => setTimeout(() => {
   canvas.width = heroImg.width;
   canvas.height = heroImg.height;
 
-  const step = 4;        // size of each grid cell (bigger image → finer dots)
+  const step = 4;        // size of each grid cell
   const threshold = 25;  // minimum brightness to count as a light
 
   for (let y = 0; y < heroImg.height; y += step) {
@@ -62,10 +62,10 @@ heroImg.onload = () => setTimeout(() => {
       }
     }
   }
-document.getElementById("dots").classList.add("is-ready");
+  canvas.classList.add("is-ready");
 }, 50);
 
-heroImg.onerror = () => console.log("HD hero image NOT found. Check the name and folder!");
+heroImg.onerror = () => console.log("Hero image NOT found. Check the name and folder!");
 
 
 // ===== DATA: NASA image used by the sound engine =====
@@ -298,6 +298,7 @@ playBtn.addEventListener("click", async () => {
     log("still loading NASA image...");
     return;
   }
+  if (Tone.Transport.state === "started") return;   // already playing: ignore extra clicks
   Tone.Transport.start();
   setGlobeTracking(true);
   setOnAir(true);
@@ -311,6 +312,7 @@ playBtn.addEventListener("click", async () => {
 });
 
 pauseBtn.addEventListener("click", () => {
+  if (Tone.Transport.state !== "started") return;   // nothing to pause
   Tone.Transport.pause();
   setOnAir(false);
   playBtn.classList.remove("is-on");
@@ -337,7 +339,6 @@ muteBtn.addEventListener("click", () => {
 
   log(muted ? "muted" : "sound on");
 });
-
 
 
 // ===== REGIONS (latitude / longitude boxes) =====
@@ -413,11 +414,14 @@ function selectRegion(key) {
   document.getElementById("world-btn").setAttribute("aria-pressed", key === "world");
   document.getElementById("map-screen").classList.toggle("world-selected", key === "world");
 
-  nowPlaying.textContent = `${r.name} selected. Press play to listen.`;
+  // the right message whether music is playing or not
+  nowPlaying.textContent = Tone.Transport.state === "started"
+    ? `Now playing ${r.name}.`
+    : `${r.name} selected. Press play to listen.`;
   log(`region: ${r.name} · ${STRIPS} strips ready`);
 
   currentKey = key;
-  if (key === "world") {
+  if (key === "world" && Tone.Transport.state !== "started") {
     setGlobeTracking(false);
   } else {
     setGlobeTracking(true);
@@ -443,7 +447,7 @@ const CODES = {
 
 // countries in SEVERAL pieces use their name (class)
 const NAMES = {
-  "north-america": ["Canada", "United States", "Bahamas", "Antigua and Barbuda", "Cayman Islands", "Puerto Rico", "Guadeloupe", , "Saint Kitts and Nevis", "Trinidad and Tobago", "Turks and Caicos Islands", "United States Virgin Islands"],
+  "north-america": ["Canada", "United States", "Bahamas", "Antigua and Barbuda", "Cayman Islands", "Puerto Rico", "Guadeloupe", "Saint Kitts and Nevis", "Trinidad and Tobago", "Turks and Caicos Islands", "United States Virgin Islands"],
   "south-america": ["Argentina", "Chile", "Falkland Islands"],
   "europe": ["Russian Federation", "United Kingdom", "France", "Italy", "Greece", "Norway", "Denmark", "Cyprus", "Malta", "Faeroe Islands"],
   "africa": ["Angola", "Cape Verde", "Comoros", "Mauritius", "São Tomé and Principe", "Seychelles", "Canary Islands (Spain)"],
@@ -539,10 +543,12 @@ function drawGraph(active = activeStrip) {
   const h = graphCanvas.clientHeight;
   if (!w || !h) return;
 
-  // sharp on high-resolution screens
+  // sharp on high-resolution screens (only resize when the size really changed)
   const dpr = window.devicePixelRatio || 1;
-  graphCanvas.width = w * dpr;
-  graphCanvas.height = h * dpr;
+  if (graphCanvas.width !== Math.round(w * dpr) || graphCanvas.height !== Math.round(h * dpr)) {
+    graphCanvas.width = Math.round(w * dpr);
+    graphCanvas.height = Math.round(h * dpr);
+  }
   const g = graphCanvas.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
@@ -595,7 +601,12 @@ function drawGraph(active = activeStrip) {
   }
 }
 
-window.addEventListener("resize", () => drawGraph());
+// redraw the graph after resizing, but only once the resizing stops
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => drawGraph(), 150);
+});
 
 
 // ===== LIVE SCREENS: WAVEFORM + NOTES =====
@@ -605,6 +616,7 @@ const notesCanvas = document.getElementById("notes");
 // listens to everything going to the speakers
 const waveform = new Tone.Waveform(512);
 Tone.Destination.connect(waveform);
+const silentWave = new Float32Array(512);   // reused flat line, no new memory each frame
 
 // sizes a canvas sharply and clears it
 function fitCanvas(c) {
@@ -643,23 +655,19 @@ function spawnNotes(events) {
 // --- waveform screen ---
 function drawWave() {
   const { g, w, h } = fitCanvas(waveCanvas);
+  if (!w || !h) return;
   const mid = h / 2;
 
   // faint grid like an oscilloscope
   g.strokeStyle = "rgba(202, 197, 229, 0.12)";
   g.lineWidth = 1;
-  for (let x = 0; x < w; x += 24) {
-    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke();
-  }
-  for (let y = 0; y < h; y += 24) {
-    g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
-  }
+  g.beginPath();
+  for (let x = 0; x < w; x += 24) { g.moveTo(x, 0); g.lineTo(x, h); }
+  for (let y = 0; y < h; y += 24) { g.moveTo(0, y); g.lineTo(w, y); }
+  g.stroke();
 
-  // the sound wave
-  // only read the sound once audio is allowed (after the first click)
-  const values = Tone.context.state === "running"
-    ? waveform.getValue()
-    : new Float32Array(512);
+  // the sound wave (only read once audio is allowed, after the first click)
+  const values = Tone.context.state === "running" ? waveform.getValue() : silentWave;
   g.strokeStyle = "#F2E0A4";
   g.lineWidth = 2;
   g.beginPath();
@@ -675,18 +683,22 @@ function drawWave() {
 // --- notes screen (piano roll) ---
 function drawNotes(dt) {
   const { g, w, h } = fitCanvas(notesCanvas);
+  if (!w || !h) return;
   const top = 28;
   const bottom = h - 10;
 
   // staff lines
   g.strokeStyle = "rgba(202, 197, 229, 0.15)";
   g.lineWidth = 1;
+  g.beginPath();
   for (let i = 0; i < 5; i++) {
     const y = top + ((bottom - top) / 4) * i;
-    g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
+    g.moveTo(0, y); g.lineTo(w, y);
   }
+  g.stroke();
 
   // current note
+  g.globalAlpha = 1;
   g.font = "18px VT323";
   g.fillStyle = "#CAC5E5";
   g.fillText(`NOTE  ${lastNote}`, 4, 18);
@@ -723,7 +735,7 @@ function drawNotes(dt) {
 let lastFrame = performance.now();
 
 function animateScreens(now) {
-  const dt = now - lastFrame;
+  const dt = Math.min(now - lastFrame, 100);   // no big jumps after switching tabs
   lastFrame = now;
   drawWave();
   drawNotes(dt);
@@ -752,6 +764,12 @@ function lonOfStrip(i) {
   return lon < 0 ? `${-lon}°W` : `${lon}°E`;
 }
 
+function reportDate() {
+  return new Date().toLocaleString("en-GB", {
+    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
+}
+
 // report for "what changed" (2012 → 2023)
 function buildReport() {
   const T = 0.05; // same threshold the sound engine uses
@@ -776,13 +794,9 @@ function buildReport() {
   else if (ratio < 0.3) trend = "Mostly DARKER: lost light outweighs new light.";
   else trend = "MIXED: some areas brightened while others dimmed.";
 
-  const date = new Date().toLocaleString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
-  });
-
   const lines = [
     { type: "title", text: "EARTHLIGHT FM · FIELD REPORT" },
-    { type: "meta", text: `${date} · Period 2012 → 2023` },
+    { type: "meta", text: `${reportDate()} · Period 2012 → 2023` },
     { type: "meta", text: `Region: ${currentRegion.toUpperCase()}` },
     { type: "rule" },
 
@@ -828,13 +842,10 @@ function buildYearReport() {
   strips.forEach((s, i) => { if (s.gained > strips[peak].gained) peak = i; });
 
   const pct = Math.round(yearVs2023 * 100);
-  const date = new Date().toLocaleString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
-  });
 
   const lines = [
     { type: "title", text: "EARTHLIGHT FM · FIELD REPORT" },
-    { type: "meta", text: `${date} · Year ${currentYear}` },
+    { type: "meta", text: `${reportDate()} · Year ${currentYear}` },
     { type: "meta", text: `Region: ${currentRegion.toUpperCase()}` },
     { type: "rule" },
 
@@ -856,6 +867,63 @@ function buildYearReport() {
     { type: "rule" },
     { type: "head", text: "03 · DATA" },
     { type: "line", text: `NASA Black Marble night lights ${currentYear} (Suomi NPP VIIRS) · NASA SVS 5276.` },
+    { type: "line", text: "Regions are approximate latitude/longitude boxes. Empty ocean at the edges is skipped." },
+    { type: "end", text: "✦ END OF TRANSMISSION ✦" }
+  );
+
+  return lines;
+}
+
+// report for two years
+function buildCompareReport() {
+  const T = 0.05;
+  const [older, newer] = selectedYears;
+  const gainStrips = strips.filter(s => s.gained > T).length;
+  const lossStrips = strips.filter(s => s.lost > T).length;
+  const silent = strips.filter(s => s.gained <= T && s.lost <= T).length;
+
+  let peakGain = 0, peakLoss = 0;
+  strips.forEach((s, i) => {
+    if (s.gained > strips[peakGain].gained) peakGain = i;
+    if (s.lost > strips[peakLoss].lost) peakLoss = i;
+  });
+
+  const pct = Math.round((compareRatio - 1) * 100);
+  const totalText = pct === 0
+    ? `Total light stayed about the same from ${older} to ${newer}.`
+    : `Total light went ${pct > 0 ? "UP" : "DOWN"} ${Math.abs(pct)}% from ${older} to ${newer}.`;
+
+  const lines = [
+    { type: "title", text: "EARTHLIGHT FM · FIELD REPORT" },
+    { type: "meta", text: `${reportDate()} · Comparing ${older} → ${newer}` },
+    { type: "meta", text: `Region: ${currentRegion.toUpperCase()}` },
+    { type: "rule" },
+
+    { type: "head", text: "01 · THE LIGHTS" },
+    { type: "line", text: totalText },
+    { type: "line", text: `Brighter in ${gainStrips} of ${STRIPS} slices · dimmer in ${lossStrips} · no clear change in ${silent}.` }
+  ];
+  if (strips[peakGain].gained > T) lines.push({ type: "line", text: `Strongest growth near ${lonOfStrip(peakGain)}.` });
+  if (strips[peakLoss].lost > T) lines.push({ type: "line", text: `Strongest loss near ${lonOfStrip(peakLoss)}.` });
+
+  lines.push(
+    { type: "rule" },
+    { type: "head", text: "02 · WHY THIS MELODY?" },
+    { type: "line", text: `The region was read west → east in ${STRIPS} slices, one beat per slice.` },
+    { type: "line", text: `${gainStrips} kalimba notes = slices that got brighter in ${newer}. A bigger percentage change plays a higher, louder note.` },
+    { type: "line", text: `${lossStrips} stylophone notes = slices that got dimmer. Low and buzzy, like a fading signal.` },
+    { type: "line", text: `${silent} silences = changes smaller than 5%, treated as no change.` },
+    { type: "line", text: "Every note comes from a pentatonic scale, so the data stays musical." },
+
+    { type: "rule" },
+    { type: "head", text: "03 · WHAT CAN CHANGE NIGHT LIGHTS" },
+    { type: "line", text: "More light: growing cities, new roads and industry, homes getting electricity." },
+    { type: "line", text: "Less light: conflict, disasters, power cuts, or people leaving an area." },
+    { type: "line", text: "Note: satellite readings vary a little from year to year (clouds, moonlight, sensor changes)." },
+
+    { type: "rule" },
+    { type: "head", text: "04 · DATA" },
+    { type: "line", text: `NASA Black Marble night lights ${older} and ${newer} (Suomi NPP VIIRS) · NASA SVS 5276.` },
     { type: "line", text: "Regions are approximate latitude/longitude boxes. Empty ocean at the edges is skipped." },
     { type: "end", text: "✦ END OF TRANSMISSION ✦" }
   );
@@ -887,7 +955,7 @@ printBtn.addEventListener("click", async () => {
       paper.appendChild(el);
 
       if (i === lines.length - 1) {
-        printerSound.stop();
+        if (printerSound.state === "started") printerSound.stop();
         paper.setAttribute("aria-busy", "false"); // now it's read in one go
         printBtn.disabled = false;
         printing = false;
@@ -906,6 +974,7 @@ let picked = [];              // years in the order they were clicked
 let selectedYears = [];       // the same years, sorted (older first)
 let yearVs2023 = 1;           // single year: total light compared to 2023
 let compareRatio = 1;         // two years: newer total light ÷ older total light
+let loadingYears = false;     // blocks extra clicks while a year image is loading
 const yearCache = {};         // year → pixels, loaded only when needed
 
 // loads a year's image once, resizes it to match the data map, then remembers it
@@ -985,34 +1054,42 @@ yearKeys.forEach(key => key.addEventListener("click", async () => {
     log("NASA image still loading...");
     return;
   }
+  if (loadingYears) return;   // wait for the previous year to finish loading
 
+  // work on a copy, so nothing changes if loading fails
+  let next = [...picked];
   if (year === "change") {
-    picked = [];
+    next = [];
   } else {
     const y = Number(year);
-    if (currentMode === "change") picked = [];     // coming from What changed: start fresh
+    if (currentMode === "change") next = [];      // coming from What changed: start fresh
 
-    if (picked.includes(y)) {
-      if (picked.length === 1) return;             // keep at least one year
-      picked = picked.filter(v => v !== y);        // click again = unselect
+    if (next.includes(y)) {
+      if (next.length === 1) return;              // keep at least one year
+      next = next.filter(v => v !== y);           // click again = unselect
     } else {
-      picked.push(y);
-      if (picked.length > 2) picked.shift();       // a third year replaces the first one
+      next.push(y);
+      if (next.length > 2) next.shift();          // a third year replaces the first one
     }
   }
-
-  selectedYears = [...picked].sort((a, b) => a - b);
+  const sorted = [...next].sort((a, b) => a - b);
 
   try {
-    if (selectedYears.length) {
-      log(`loading ${selectedYears.join(" + ")}...`);
-      await loadYearPixels(2023);                  // reference scale
-      for (const y of selectedYears) await loadYearPixels(y);
+    if (sorted.length) {
+      loadingYears = true;
+      log(`loading ${sorted.join(" + ")}...`);
+      await loadYearPixels(2023);                 // reference scale
+      for (const y of sorted) await loadYearPixels(y);
     }
   } catch (err) {
     log(err.message);
     return;
+  } finally {
+    loadingYears = false;
   }
+
+  picked = next;
+  selectedYears = sorted;
 
   if (selectedYears.length === 0) {
     currentMode = "change";
@@ -1035,66 +1112,6 @@ yearKeys.forEach(key => key.addEventListener("click", async () => {
   log(`mode: ${currentMode === "compare" ? "compare " : ""}${yearLabel()}`);
 }));
 
-// field report for two years
-function buildCompareReport() {
-  const T = 0.05;
-  const [older, newer] = selectedYears;
-  const gainStrips = strips.filter(s => s.gained > T).length;
-  const lossStrips = strips.filter(s => s.lost > T).length;
-  const silent = strips.filter(s => s.gained <= T && s.lost <= T).length;
-
-  let peakGain = 0, peakLoss = 0;
-  strips.forEach((s, i) => {
-    if (s.gained > strips[peakGain].gained) peakGain = i;
-    if (s.lost > strips[peakLoss].lost) peakLoss = i;
-  });
-
-  const pct = Math.round((compareRatio - 1) * 100);
-  const totalText = pct === 0
-    ? `Total light stayed about the same from ${older} to ${newer}.`
-    : `Total light went ${pct > 0 ? "UP" : "DOWN"} ${Math.abs(pct)}% from ${older} to ${newer}.`;
-
-  const date = new Date().toLocaleString("en-GB", {
-    day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
-  });
-
-  const lines = [
-    { type: "title", text: "EARTHLIGHT FM · FIELD REPORT" },
-    { type: "meta", text: `${date} · Comparing ${older} → ${newer}` },
-    { type: "meta", text: `Region: ${currentRegion.toUpperCase()}` },
-    { type: "rule" },
-
-    { type: "head", text: "01 · THE LIGHTS" },
-    { type: "line", text: totalText },
-    { type: "line", text: `Brighter in ${gainStrips} of ${STRIPS} slices · dimmer in ${lossStrips} · no clear change in ${silent}.` }
-  ];
-  if (strips[peakGain].gained > T) lines.push({ type: "line", text: `Strongest growth near ${lonOfStrip(peakGain)}.` });
-  if (strips[peakLoss].lost > T) lines.push({ type: "line", text: `Strongest loss near ${lonOfStrip(peakLoss)}.` });
-
-  lines.push(
-    { type: "rule" },
-    { type: "head", text: "02 · WHY THIS MELODY?" },
-    { type: "line", text: `The region was read west → east in ${STRIPS} slices, one beat per slice.` },
-    { type: "line", text: `${gainStrips} kalimba notes = slices that got brighter in ${newer}. A bigger increase plays a higher, louder note.` },
-    { type: "line", text: `${gainStrips} kalimba notes = slices that got brighter in ${newer}. A bigger percentage change plays a higher, louder note.` },
-    { type: "line", text: `${silent} silences = changes smaller than 5%, treated as no change.` },
-    { type: "line", text: "Every note comes from a pentatonic scale, so the data stays musical." },
-
-    { type: "rule" },
-    { type: "head", text: "03 · WHAT CAN CHANGE NIGHT LIGHTS" },
-    { type: "line", text: "More light: growing cities, new roads and industry, homes getting electricity." },
-    { type: "line", text: "Less light: conflict, disasters, power cuts, or people leaving an area." },
-    { type: "line", text: "Note: satellite readings vary a little from year to year (clouds, moonlight, sensor changes)." },
-
-    { type: "rule" },
-    { type: "head", text: "04 · DATA" },
-    { type: "line", text: `NASA Black Marble night lights ${older} and ${newer} (Suomi NPP VIIRS) · NASA SVS 5276.` },
-    { type: "line", text: "Regions are approximate latitude/longitude boxes. Empty ocean at the edges is skipped." },
-    { type: "end", text: "✦ END OF TRANSMISSION ✦" }
-  );
-
-  return lines;
-}
 
 // ===== HOW IT WORKS POP-UP =====
 const howDialog = document.getElementById("how");
@@ -1103,7 +1120,7 @@ const howDialog = document.getElementById("how");
 document.querySelectorAll('a[href="#how"]').forEach(link => {
   link.addEventListener("click", e => {
     e.preventDefault();
-    howDialog.showModal();
+    if (!howDialog.open) howDialog.showModal();
   });
 });
 
