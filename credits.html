@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credits · Earthlight FM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Darumadrop+One&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:wght@400;700&family=VT323&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- HEADER -->
+    <header class="site-header">
+        <a href="index.html" class="logo">
+            <span class="icon icon-sparkles" aria-hidden="true"></span>
+            Earthlight <span class="logo-fm">FM</span>
+        </a>
+
+        <nav aria-label="Main">
+            <ul class="nav-links">
+                <li><a href="index.html#screens">Control room</a></li>
+                <li><a href="#how">How it works</a></li>
+                <li><a href="credits.html" aria-current="page">Credits</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="credits-page">
+        <p class="eyebrow">Credits</p>
+        <h1 class="section-title">The crew behind the signal.</h1>
+
+        <div class="credits-stage">
+
+            <!-- LEFT: mission stats -->
+            <aside class="monitor credits-side" aria-labelledby="stats-title">
+                <header class="monitor-label" id="stats-title">Mission stats</header>
+                <div class="monitor-screen side-screen">
+                    <dl class="stats">
+                        <div>
+                            <dt>12</dt>
+                            <dd>years of night lights, 2012–2023</dd>
+                        </div>
+                        <div>
+                            <dt>7</dt>
+                            <dd>regions: 6 continents + the world</dd>
+                        </div>
+                        <div>
+                            <dt>32</dt>
+                            <dd>slices per song, one beat each</dd>
+                        </div>
+                        <div>
+                            <dt>2</dt>
+                            <dd>instruments: kalimba + stylophone</dd>
+                        </div>
+                        <div>
+                            <dt>1</dt>
+                            <dd>person, 48 hours</dd>
+                        </div>
+                    </dl>
+                </div>
+            </aside>
+
+            <!-- CENTER: spaceship window -->
+            <div class="porthole" id="porthole">
+                <div class="porthole-glass">
+                    <div class="space-globe" aria-hidden="true"></div>
+
+                    <!-- rolling credits (real text, readable by screen readers) -->
+                    <div class="credits-roll">
+                        <div class="roll">
+                            <p class="roll-head">Earthlight FM</p>
+                            <p>Concept, design & development<br><strong>Aya El Hage</strong></p>
+
+                            <p class="roll-head">Data</p>
+                            <p>NASA Black Marble night lights<br>Suomi NPP VIIRS</p>
+                            <p>NASA Scientific Visualization Studio<br>SVS 5313 · SVS 5276</p>
+
+                            <p class="roll-head">Challenge</p>
+                            <p>NASA Space Apps Challenge 2026<br>The Earth Information Jukebox</p>
+                            <p>Local event: Tripoli, Lebanon</p>
+
+                            <p class="roll-head">Sound</p>
+                            <p>Synthesis: Tone.js (MIT)</p>
+                            <p>Printer sound: Freesound (CC0)</p>
+
+                            <p class="roll-head">Visuals</p>
+                            <p>World map: simplemaps.com</p>
+                            <p>Icons: Lucide (ISC)</p>
+                            <p>Fonts: Darumadrop One, Space Grotesk,<br>Space Mono, VT323 (Google Fonts, OFL)</p>
+                            <p>Instrument panel photo: NASA</p>
+
+                            <p class="roll-head">Assistance</p>
+                            <p>AI support for planning, code and debugging: Claude</p>
+
+                            <p class="roll-head">Special thanks</p>
+                            <p>Mom, chief design critic</p>
+
+                            <p class="roll-end">✦ Every light is a person, a home, a sound. ✦</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: signal path -->
+            <aside class="monitor credits-side" aria-labelledby="path-title">
+                <header class="monitor-label" id="path-title">Signal path</header>
+                <div class="monitor-screen side-screen">
+                    <ol class="signal-path">
+                        <li><strong>Suomi NPP</strong> crosses each place around 1:30 a.m. and records its lights</li>
+                        <li><strong>NASA Black Marble</strong> cleans the data: clouds, moonlight, glare</li>
+                        <li><strong>NASA SVS</strong> turns it into maps for the Earth Information Center</li>
+                        <li><strong>Earthlight FM</strong> reads every pixel and turns light into notes</li>
+                        <li><strong>You</strong> hear the planet</li>
+                    </ol>
+                </div>
+            </aside>
+
+        </div>
+
+        <div class="credits-controls">
+            <button class="key gravity-key" id="gravity-btn" aria-pressed="false">No gravity</button>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="footer-brand">
+            <p class="logo">
+                <span class="icon icon-sparkles" aria-hidden="true"></span>
+                Earthlight <span class="logo-fm">FM</span>
+            </p>
+            <p class="footer-tagline">Tuned to Earth, live from orbit.</p>
+        </div>
+
+        <div class="footer-col">
+            <h3>Fun fact</h3>
+            <p>NASA's night-light satellite crosses each place on Earth around 1:30 a.m. local time, so every light you
+                hear was still on in the middle of the night.</p>
+        </div>
+
+        <div class="footer-col">
+            <h3>Data</h3>
+            <p>Night lights from NASA Black Marble (Suomi NPP VIIRS), via the NASA Scientific Visualization Studio.</p>
+            <p>NASA Space Apps 2026 · Built by Aya El Hage</p>
+        </div>
+    </footer>
+
+    <!-- HOW IT WORKS POP-UP -->
+    <dialog class="retro-window" id="how" aria-labelledby="how-title">
+        <div class="window-bar">
+            <h2 id="how-title">HOW_IT_WORKS.EXE</h2>
+            <span class="window-stripes" aria-hidden="true"></span>
+            <button class="window-close" id="how-close" aria-label="Close">
+                <span class="icon icon-close" aria-hidden="true"></span>
+            </button>
+        </div>
+
+        <div class="window-body">
+            <img class="how-photo" src="assets/images/controlpanel.jpg"
+                alt="Vintage NASA aircraft instrument panel full of dials and switches">
+
+            <div class="how-content">
+                <p class="window-intro">Earthlight FM turns NASA's night lights into music. Here's how to tune in:</p>
+
+                <ol class="how-steps">
+                    <li>
+                        <div><strong>Pick a place</strong><span>Click a continent on the map, or press World.</span>
+                        </div>
+                    </li>
+                    <li>
+                        <div><strong>Pick a time</strong><span>What changed (2012 → 2023), one year, or two years to
+                                compare.</span></div>
+                    </li>
+                    <li>
+                        <div><strong>Press Play</strong><span>The region is read from west to east, one note per
+                                slice.</span></div>
+                    </li>
+                    <li>
+                        <div><strong>Watch the screens</strong><span>The globe, graph, notes and log follow the
+                                music.</span></div>
+                    </li>
+                    <li>
+                        <div><strong>Press Print</strong><span>Get a field report explaining what you heard.</span>
+                        </div>
+                    </li>
+                </ol>
+
+                <div class="how-legend">
+                    <p class="how-legend-title">What you hear</p>
+                    <ul>
+                        <li><span class="legend-chip chip-kalimba" aria-hidden="true"></span> Kalimba: more light, or
+                            brighter</li>
+                        <li><span class="legend-chip chip-stylo" aria-hidden="true"></span> Stylophone: less light, or
+                            dimmer</li>
+                        <li><span class="legend-chip chip-silence" aria-hidden="true"></span> Silence: no lights, or no
+                            real change</li>
+                        <li>Higher, louder notes mean a stronger signal.</li>
+                    </ul>
+                </div>
+
+                <div class="window-actions">
+                    <p class="window-hint">Tab · Enter · Esc to close</p>
+                    <button class="pixel-btn" id="how-ok">Start listening</button>
+                </div>
+            </div>
+        </div>
+    </dialog>
+
+    <script src="credits.js"></script>
+</body>
+
+</html>

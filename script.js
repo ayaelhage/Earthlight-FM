@@ -1,8 +1,8 @@
 // ===== HERO: high-detail night lights (visual only) =====
 const heroImg = new Image();
-heroImg.src = "assets/images/lights-change-hd.jpg";
+heroImg.src = "assets/images/lights-change.jpg";
 
-heroImg.onload = () => {
+heroImg.onload = () => setTimeout(() => {
   // 1. Read the pixels (invisible canvas)
   const reader = document.createElement("canvas");
   reader.width = heroImg.width;
@@ -17,7 +17,7 @@ heroImg.onload = () => {
   canvas.width = heroImg.width;
   canvas.height = heroImg.height;
 
-  const step = 8;        // size of each grid cell (bigger image → finer dots)
+  const step = 4;        // size of each grid cell (bigger image → finer dots)
   const threshold = 25;  // minimum brightness to count as a light
 
   for (let y = 0; y < heroImg.height; y += step) {
@@ -58,8 +58,8 @@ heroImg.onload = () => {
       }
     }
   }
-  log("hero map drawn · high detail");
-};
+document.getElementById("dots").classList.add("is-ready");
+}, 50);
 
 heroImg.onerror = () => console.log("HD hero image NOT found. Check the name and folder!");
 
@@ -439,10 +439,10 @@ const CODES = {
 
 // countries in SEVERAL pieces use their name (class)
 const NAMES = {
-  "north-america": ["Canada", "United States", "Bahamas", "Antigua and Barbuda", "Cayman Islands", "Puerto Rico", "Saint Kitts and Nevis", "Trinidad and Tobago", "Turks and Caicos Islands", "United States Virgin Islands"],
+  "north-america": ["Canada", "United States", "Bahamas", "Antigua and Barbuda", "Cayman Islands", "Puerto Rico", "Guadeloupe", , "Saint Kitts and Nevis", "Trinidad and Tobago", "Turks and Caicos Islands", "United States Virgin Islands"],
   "south-america": ["Argentina", "Chile", "Falkland Islands"],
   "europe": ["Russian Federation", "United Kingdom", "France", "Italy", "Greece", "Norway", "Denmark", "Cyprus", "Malta", "Faeroe Islands"],
-  "africa": ["Angola", "Cape Verde", "Comoros", "Mauritius", "Sao Tome and Principe", "Seychelles", "Canary Islands (Spain)"],
+  "africa": ["Angola", "Cape Verde", "Comoros", "Mauritius", "São Tomé and Principe", "Seychelles", "Canary Islands (Spain)"],
   "asia": ["China", "Japan", "Indonesia", "Malaysia", "Philippines", "Oman", "Azerbaijan", "Turkey"],
   "oceania": ["Australia", "New Zealand", "Papua New Guinea", "Fiji", "Solomon Islands", "Vanuatu", "New Caledonia", "French Polynesia", "Samoa", "American Samoa", "Kiribati", "Federated States of Micronesia", "Northern Mariana Islands", "Tonga"]
 };
@@ -652,7 +652,10 @@ function drawWave() {
   }
 
   // the sound wave
-  const values = waveform.getValue();
+  // only read the sound once audio is allowed (after the first click)
+  const values = Tone.context.state === "running"
+    ? waveform.getValue()
+    : new Float32Array(512);
   g.strokeStyle = "#F2E0A4";
   g.lineWidth = 2;
   g.beginPath();
